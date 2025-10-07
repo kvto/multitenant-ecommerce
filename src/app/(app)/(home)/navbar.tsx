@@ -53,7 +53,7 @@ export const Navbar = () => {
     return (
         <nav className="h-20 flex border-b justify-between font-medium bg-white">
             <Link href="/" className="pl-6 flex items-center">
-                <span className={cn("text-5xl font-semibold", poppins.className)}>
+                <span className={cn("text-3xl font-semibold", poppins.className)}>
                     Superstore
                 </span>
             </Link>
@@ -63,7 +63,7 @@ export const Navbar = () => {
             open={isSidebarOpen}
             onOpenChange={setIsSidebarOpen}/>
 
-            <div className="items-center gap-4 hidden lg:flex">
+            <div className="items-center gap-1 hidden lg:flex">
                 {navbarItems.map((item) => (
                     <NavbarItem
                     key={item.href}

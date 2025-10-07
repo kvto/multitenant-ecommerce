@@ -1,25 +1,130 @@
-import { Category } from "@/payload-types";
+"use client"
+
 import { CategoryDropdown } from "./category-dropdown";
+import { useRef, useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ListFilterIcon } from "lucide-react";
+import { CategoriesSidebar } from "./categories-sidebar";
+import { CategoriesGetManyOutput } from "@/modules/categories/types"
 
 interface Props {
-    data: any;
+  data: CategoriesGetManyOutput;
 }
 
-export const Categories = ({data}: Props) => {
-    return(
-        <div>
+export const Categories = ({ data }: Props) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const viewAllRef = useRef<HTMLDivElement>(null);
 
-        <div className="flex flex-nowrap items-center gap-x-4">
-            {data.map((category: Category) => (
-                <div key={category.id} className="mx-2">
-                    <CategoryDropdown
-                    category={category}
-                    isActive={false}
-                    isNavigationHovered={false}
-                    />
-                </div>
-            ))}
+  const [visibleCount, setVisibleCount] = useState(data.length);
+  const [isAnyHovered, setIsAnyHovered] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const activeCategory = "todo";
+
+  const activeCategoryIndex = data.findIndex(
+    (cat) => cat.slug === activeCategory
+  );
+  const isActiveCategoryHidden =
+    activeCategoryIndex >= visibleCount && activeCategoryIndex !== -1;
+
+  useEffect(() => {
+    const calculateVisible = () => {
+      if (
+        !containerRef.current ||
+        !measureRef.current ||
+        !viewAllRef.current
+      )
+        return;
+
+      const containerWidth = containerRef.current.offsetWidth;
+      const viewAllWidth = viewAllRef.current.offsetWidth;
+      const availableWidth = containerWidth - viewAllWidth;
+
+      const items = Array.from(measureRef.current.children);
+      let totalWidth = 0;
+      let visible = 0;
+
+      for (const item of items) {
+        const width = item.getBoundingClientRect().width;
+
+        if (totalWidth + width > availableWidth) break;
+        totalWidth += width;
+        visible++;
+      }
+
+      // Si al sumar el botón se pasa del contenedor, retrocede una categoría
+      if (totalWidth + viewAllWidth > containerWidth) {
+        visible = Math.max(0, visible - 1);
+      }
+
+      setVisibleCount(visible);
+    };
+
+    const resizeObserver = new ResizeObserver(calculateVisible);
+    resizeObserver.observe(containerRef.current!);
+
+    return () => resizeObserver.disconnect();
+  }, [data.length]);
+
+  return (
+    <div className="relative w-full">
+      <CategoriesSidebar
+        open={isSidebarOpen}
+        onOpenChange={setIsSidebarOpen}
+      />
+
+      {/* Medición oculta */}
+      <div
+        ref={measureRef}
+        className="absolute opacity-0 pointer-events-none flex"
+        style={{ position: "fixed", top: -9999, left: -9999 }}
+      >
+        {data.map((category) => (
+          <div key={category.id} className="mx-2">
+            <CategoryDropdown
+              category={category}
+              isActive={activeCategory === category.slug}
+              isNavigationHovered={false}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Categorías visibles */}
+      <div
+        ref={containerRef}
+        className="flex flex-nowrap items-center"
+        onMouseEnter={() => setIsAnyHovered(true)}
+        onMouseLeave={() => setIsAnyHovered(false)}
+      >
+        {data.slice(0, visibleCount).map((category) => (
+          <div key={category.id} className="mx-2">
+            <CategoryDropdown
+              category={category}
+              isActive={activeCategory === category.slug}
+              isNavigationHovered={isAnyHovered}
+            />
+          </div>
+        ))}
+
+        {/* Botón siempre dentro */}
+        <div ref={viewAllRef} className="shrink-0">
+          <Button
+            className={cn(
+              "h-11 px-4 bg-transparent border-transparent rounded-full hover:bg-white hover:border-primary text-black",
+              isActiveCategoryHidden &&
+                !isAnyHovered &&
+                "bg-white border-primary"
+            )}
+            onClick={() => setIsSidebarOpen(true)}
+          >
+           ver mas
+            <ListFilterIcon className="ml-2" />
+          </Button>
         </div>
-        </div>
-    )
-}
+      </div>
+    </div>
+  );
+};
